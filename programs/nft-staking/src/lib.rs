@@ -15,16 +15,12 @@ pub mod nft_staking {
     pub fn stake(ctx: Context<Stake>) -> Result<()> {
         // make pda for nft collection
         // transfer nft to pda
-        msg!("Staking NFT");
-        msg!("User: {}", ctx.accounts.user.key());
-        msg!("NFT Account: {}", ctx.accounts.nft_account.key());
-        msg!("Stake Account: {}", ctx.accounts.stake_account.key());
         transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
                     from: ctx.accounts.nft_account.to_account_info(),
-                    to: ctx.accounts.stake_account.to_account_info(),
+                    to: ctx.accounts.stake_token_account.to_account_info(),
                     authority: ctx.accounts.user.to_account_info(),
                 }
             ),
@@ -34,7 +30,6 @@ pub mod nft_staking {
         staking_account.staked_time = Clock::get()?.unix_timestamp;
         staking_account.owner = ctx.accounts.user.key();
         staking_account.mint = ctx.accounts.nft_account.mint;
-        msg!("Nft staked: {}", ctx.accounts.nft_account.mint.to_string());
         Ok(())
     }
     pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
@@ -78,18 +73,23 @@ pub struct Stake<'info> {
         space = 8 + 32 + 32 + 8,
     )]
     pub stake_account: Account<'info, StakeInfo>,
+    #[account(
+        init,
+        seeds = [b"stake", user.key().as_ref(), nft_account.key().as_ref()],
+        bump,
+        payer = user,
+        token::mint = nft_account.mint,
+        token::authority = stake_account,
+    )]
+    pub stake_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(
         mut,
-        constraint = nft_account.owner == user.key(),
-        constraint = nft_account.amount == 1,
     )]
     pub nft_account: Account<'info, TokenAccount>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-    #[account(mut)]
-    pub nft_pda: AccountInfo<'info>
 }
 
 #[derive(Accounts)]
