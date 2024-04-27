@@ -78,17 +78,17 @@ pub struct Stake<'info> {
         seeds = [b"stake_account", user.key().as_ref(), nft_account.key().as_ref()],
         bump,
         payer = user,
-        token::mint = nft_account,
-        token::authority = stake_account,
+        token::mint = mint,
+        token::authority = program_authority,
     )]
     pub stake_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub user: Signer<'info>,
-    #[account(
-        mut,
-    )]
+    #[account(mut)]
     pub nft_account: Account<'info, TokenAccount>,
+    pub mint: Account<'info, Mint>,
     pub system_program: Program<'info, System>,
+    pub program_authority: AccountInfo<'info>,
     pub token_program: Program<'info, Token>,
 }
 
