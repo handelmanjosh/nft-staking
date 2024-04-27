@@ -48,6 +48,7 @@ pub mod nft_staking {
             1
         );
         let time_diff = Clock::get()?.unix_timestamp - ctx.accounts.stake_account.staked_time;
+        let tokens = time_diff; //how do we calculate tokens earned?
         mint_to(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -58,7 +59,7 @@ pub mod nft_staking {
                 },
                 &[&[b"mint", &[ctx.bumps.token_mint]]]
             ),
-            10*10^6
+            tokens
         );
         Ok(())
     }
@@ -144,7 +145,6 @@ pub struct Unstake<'info> {
         mut,
         seeds = [b"stake_account", user.key().as_ref(), nft_account.key().as_ref()],
         bump,
-        close = user,
     )]
     pub stake_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
@@ -156,6 +156,7 @@ pub struct Unstake<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     #[account(
+        mut,
         seeds = [b"mint"],
         bump,
     )]

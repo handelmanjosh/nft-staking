@@ -18,14 +18,17 @@ describe("nft-staking", () => {
     [Buffer.from("auth")],
     program.programId,
   );
-  it("Is initialized!", async () => {
-    // Add your test here.
+  const initialize = async () => {
     const tx = await program.methods.initialize().accounts({
       mint,
       programAuthority,
     }).rpc();
-    console.log("Your transaction signature", tx);
+  }
+  it("Is initialized!", async () => {
+    // Add your test here.
+    await initialize();
   });
+  
   const stake = async () => {
     const nftMint = await createMint(
       provider.connection,
