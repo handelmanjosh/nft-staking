@@ -75,7 +75,7 @@ pub struct Stake<'info> {
     pub stake_account: Account<'info, StakeInfo>,
     #[account(
         init,
-        seeds = [b"stake", user.key().as_ref(), nft_account.key().as_ref()],
+        seeds = [b"stake_account", user.key().as_ref(), nft_account.key().as_ref()],
         bump,
         payer = user,
         token::mint = nft_account,
