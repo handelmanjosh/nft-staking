@@ -8,13 +8,14 @@ pub mod nft_staking {
     use super::*;
 
     pub fn initialize(_ctx: Context<Initialize>) -> Result<()> {
-        msg!("Token state initialized");
+        // msg!("Token state initialized");
         Ok(())
     }
 
     pub fn stake(ctx: Context<Stake>) -> Result<()> {
         // make pda for nft collection
         // transfer nft to pda
+        // make sure that nft is part of valid collection
         transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),

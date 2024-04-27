@@ -91,6 +91,44 @@ describe("nft-staking", () => {
     // create nft collection for testing
     await stake();
   });
+  it("can claim rewards", async () => {
+    const { nftMint, nftAccount, stakeTokenAccount, stakeAccount } = await stake();
+    const stakeAccountBefore = await program.account.stakeInfo.fetch(stakeAccount);
+    const userTokenAccount = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      mint,
+      wallet.publicKey,
+    );
+    await program.methods.claim().accounts({
+      stakeAccount,
+      user: wallet.publicKey,
+      userTokenAccount: userTokenAccount.address,
+      nftAccount: nftAccount.address,
+      tokenMint: mint,
+    }).signers([wallet.payer]).rpc();
+    const nft = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      nftMint,
+      wallet.publicKey,
+    );
+    assert(nft.amount == BigInt(0), "User withdrew nft");
+    const nftStakeAccount = await getAccount(
+      provider.connection,
+      stakeTokenAccount,
+    );
+    assert(nftStakeAccount.amount == BigInt(1), "NFT stake account lost nft");
+    const userTokens = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      mint,
+      wallet.publicKey,
+    );
+    assert(userTokens.amount > BigInt(0), "User did not get any tokens");
+    const stakeAccountAfter = await program.account.stakeInfo.fetch(stakeAccount);
+    assert(stakeAccountAfter.stakedTime > stakeAccountBefore.stakedTime, "Staked time not updated");
+  })
   it("can unstake nft, getting tokens", async () => {
     const { nftMint, stakeTokenAccount, stakeAccount } = await stake();
     const userTokenAccount = await getOrCreateAssociatedTokenAccount(
