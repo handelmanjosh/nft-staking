@@ -43,7 +43,7 @@ pub mod nft_staking {
                     to: ctx.accounts.nft_account.to_account_info(),
                     authority: ctx.accounts.program_authority.to_account_info(),
                 },
-                &[&[b"stake_account"]]
+                &[&[b"auth", &[ctx.bumps.program_authority]]]
             ),
             1
         );
@@ -56,7 +56,7 @@ pub mod nft_staking {
                     mint: ctx.accounts.token_mint.to_account_info(),
                     authority: ctx.accounts.token_mint.to_account_info(),
                 },
-                &[&[b"mint"]]
+                &[&[b"mint", &[ctx.bumps.token_mint]]]
             ),
             10*10^6
         );
