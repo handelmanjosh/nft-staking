@@ -15,6 +15,7 @@ pub mod nft_staking {
     pub fn stake(ctx: Context<Stake>) -> Result<()> {
         // make pda for nft collection
         // transfer nft to pda
+        msg!("hello");
         transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -71,7 +72,7 @@ pub struct Stake<'info> {
         seeds = [b"stake", user.key().as_ref(), nft_account.key().as_ref()],
         bump,
         payer = user,
-        space = 32 + 32 + 8,
+        space = 8 + 32 + 32 + 8,
     )]
     pub stake_account: Account<'info, StakeInfo>,
     #[account(mut)]
@@ -89,11 +90,4 @@ pub struct Stake<'info> {
 #[derive(Accounts)]
 pub struct Unstake {
 
-}
-
-
-#[error_code]
-enum StakingError {
-    #[msg("User does not own nft")]
-    NotOwner
 }
