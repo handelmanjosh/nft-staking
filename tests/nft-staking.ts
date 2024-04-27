@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { NftStaking } from "../target/types/nft_staking";
-import { TOKEN_PROGRAM_ID, createMint, getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID, createMint, getOrCreateAssociatedTokenAccount, mintTo, getAccount } from "@solana/spl-token";
 import { assert } from "chai";
 describe("nft-staking", () => {
   // Configure the client to use the local cluster.
@@ -66,10 +66,8 @@ describe("nft-staking", () => {
     assert(fetched.mint.toString() == nftMint.toString());
     assert(fetched.owner.toString() == wallet.publicKey.toString());
     assert(fetched.stakedTime.toNumber() > 0);
-    const stakedTokenAccount = await getOrCreateAssociatedTokenAccount(
+    const stakedTokenAccount = await getAccount(
       provider.connection,
-      wallet.payer,
-      nftMint,
       stakeTokenAccount
     );
     assert(stakedTokenAccount.amount == BigInt(1), "Token account does not contain token");
