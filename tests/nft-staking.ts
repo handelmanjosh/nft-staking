@@ -21,8 +21,7 @@ describe("nft-staking", () => {
     }).rpc();
     console.log("Your transaction signature", tx);
   });
-  it("can stake nft", async () => {
-    // create nft collection for testing
+  const stake = async () => {
     const nftMint = await createMint(
       provider.connection,
       wallet.payer,
@@ -78,8 +77,14 @@ describe("nft-staking", () => {
       wallet.publicKey,
     );
     assert(nft.amount == BigInt(0), "Token not transferred");
+    return { nftMint, nftAccount, stakeTokenAccount, stakeAccount }
+  }
+  it("can stake nft", async () => {
+    // create nft collection for testing
+    await stake();
   });
   it("can unstake nft, getting tokens", async () => {
-
+    const { nftMint, nftAccount, stakeTokenAccount, stakeAccount } = await stake();
+    
   });
 });
