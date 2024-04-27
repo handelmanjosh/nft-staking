@@ -56,6 +56,8 @@ describe("nft-staking", () => {
       stakeAccount,
       stakeTokenAccount,
       user: wallet.publicKey,
+      mint: nftMint,
+      programAuthority: program.programId,
       nftAccount: nftAccount.address,
       tokenProgram: TOKEN_PROGRAM_ID,
     }).signers([wallet.payer]).rpc();
@@ -64,13 +66,13 @@ describe("nft-staking", () => {
     assert(fetched.mint.toString() == nftMint.toString());
     assert(fetched.owner.toString() == wallet.publicKey.toString());
     assert(fetched.stakedTime.toNumber() > 0);
-    // const stakedTokenAccount = await getOrCreateAssociatedTokenAccount(
-    //   provider.connection,
-    //   wallet.payer,
-    //   nftMint,
-    //   stakeAccount
-    // );
-    // assert(stakedTokenAccount.amount == BigInt(1), "Token account does not contain token");
+    const stakedTokenAccount = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      nftMint,
+      stakeTokenAccount
+    );
+    assert(stakedTokenAccount.amount == BigInt(1), "Token account does not contain token");
     let nft = await getOrCreateAssociatedTokenAccount(
       provider.connection,
       wallet.payer,

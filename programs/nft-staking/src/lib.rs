@@ -88,6 +88,7 @@ pub struct Stake<'info> {
     pub nft_account: Account<'info, TokenAccount>,
     pub mint: Account<'info, Mint>,
     pub system_program: Program<'info, System>,
+    /// CHECK: fuck off
     pub program_authority: AccountInfo<'info>,
     pub token_program: Program<'info, Token>,
 }
