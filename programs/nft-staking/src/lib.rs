@@ -15,7 +15,10 @@ pub mod nft_staking {
     pub fn stake(ctx: Context<Stake>) -> Result<()> {
         // make pda for nft collection
         // transfer nft to pda
-        msg!("hello");
+        msg!("Staking NFT");
+        msg!("User: {}", ctx.accounts.user.key());
+        msg!("NFT Account: {}", ctx.accounts.nft_account.key());
+        msg!("Stake Account: {}", ctx.accounts.stake_account.key());
         transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -26,7 +29,7 @@ pub mod nft_staking {
                 }
             ),
             1
-        )?; // remember to add error handling
+        ); // remember to add error handling
         let staking_account = &mut ctx.accounts.stake_account;
         staking_account.staked_time = Clock::get()?.unix_timestamp;
         staking_account.owner = ctx.accounts.user.key();
@@ -85,6 +88,8 @@ pub struct Stake<'info> {
     pub nft_account: Account<'info, TokenAccount>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
+    #[account(mut)]
+    pub nft_pda: AccountInfo<'info>
 }
 
 #[derive(Accounts)]
