@@ -14,10 +14,15 @@ describe("nft-staking", () => {
     [Buffer.from("mint")],
     program.programId,
   );
+  const [programAuthority] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("auth")],
+    program.programId,
+  );
   it("Is initialized!", async () => {
     // Add your test here.
     const tx = await program.methods.initialize().accounts({
       mint,
+      programAuthority,
     }).rpc();
     console.log("Your transaction signature", tx);
   });
@@ -56,7 +61,7 @@ describe("nft-staking", () => {
       stakeTokenAccount,
       user: wallet.publicKey,
       mint: nftMint,
-      programAuthority: program.programId,
+      programAuthority,
       nftAccount: nftAccount.address,
       tokenProgram: TOKEN_PROGRAM_ID,
     }).signers([wallet.payer]).rpc();
@@ -84,7 +89,49 @@ describe("nft-staking", () => {
     await stake();
   });
   it("can unstake nft, getting tokens", async () => {
-    const { nftMint, nftAccount, stakeTokenAccount, stakeAccount } = await stake();
-    
+    const { nftMint, stakeTokenAccount, stakeAccount } = await stake();
+    const userTokenAccount = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      mint,
+      wallet.publicKey,
+    );
+
+    const nftAccount = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      nftMint,
+      wallet.publicKey,
+    );
+    await program.methods.unstake().accounts({
+      stakeAccount,
+      stakeTokenAccount,
+      tokenMint: mint,
+      user: wallet.publicKey,
+      nftAccount: nftAccount.address,
+      userTokenAccount: userTokenAccount.address,
+      programAuthority,
+    }).rpc();
+
+    const stakedAccountAfter = await getAccount(
+      provider.connection,
+      stakeTokenAccount,
+    );
+    assert(stakedAccountAfter.amount == BigInt(0), "NFT not transferred to user");
+    let nft = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      nftMint,
+      wallet.publicKey,
+    );
+    assert(nft.amount == BigInt(1), "User does not have nft");
+
+    let token = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      mint,
+      wallet.publicKey,
+    )
+    assert(token.amount > BigInt(0), "User did not get any tokens")
   });
 });

@@ -39,14 +39,14 @@ pub mod nft_staking {
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
-                    from: ctx.accounts.nft_account.to_account_info(),
-                    to: ctx.accounts.user.to_account_info(),
+                    from: ctx.accounts.stake_token_account.to_account_info(),
+                    to: ctx.accounts.nft_account.to_account_info(),
                     authority: ctx.accounts.program_authority.to_account_info(),
                 },
                 &[&[b"stake_account"]]
             ),
             1
-        )?;
+        );
         let time_diff = Clock::get()?.unix_timestamp - ctx.accounts.stake_account.staked_time;
         mint_to(
             CpiContext::new_with_signer(
@@ -59,7 +59,7 @@ pub mod nft_staking {
                 &[&[b"mint"]]
             ),
             10*10^6
-        )?;
+        );
         Ok(())
     }
 }
@@ -77,11 +77,12 @@ pub struct Initialize<'info> {
     pub mint: Account<'info, Mint>,
     #[account(
         init,
-        seeds = [b"mint"],
+        seeds = [b"auth"],
         bump,
         payer = user,
         space = 8
     )]
+    /// CHECK: fuck off
     pub program_authority: UncheckedAccount<'info>,
     #[account(mut)]
     pub user: Signer<'info>,
@@ -125,7 +126,8 @@ pub struct Stake<'info> {
         seeds = [b"auth"],
         bump
     )]
-    pub program_authority: AccountInfo<'info>,
+    /// CHECK: fuck off
+    pub program_authority: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -153,7 +155,15 @@ pub struct Unstake<'info> {
     pub user_token_account: Account<'info, TokenAccount>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
+    #[account(
+        seeds = [b"mint"],
+        bump,
+    )]
     pub token_mint: Account<'info, Mint>,
+    #[account(
+        seeds = [b"auth"],
+        bump,
+    )]
     /// CHECK: fuck off
     pub program_authority: AccountInfo<'info>,
 }
