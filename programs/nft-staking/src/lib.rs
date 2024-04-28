@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{mint_to, MintTo, Mint, TokenAccount, Token, transfer, Transfer};
-use anchor_spl::associated_token::AssociatedToken;
 declare_id!("E51uGYbVrPyLffi5qVgjxvYaaRA1StrJjqq3J7HnSpCV");
 
 #[program]
