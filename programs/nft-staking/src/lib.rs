@@ -11,7 +11,7 @@ pub mod nft_staking {
         Ok(())
     }
 
-    pub fn stake(ctx: Context<Stake>) -> Result<()> {
+    pub fn stake(ctx: Context<Stake>, collection: u8) -> Result<()> {
         // make pda for nft collection
         // transfer nft to pda
         // make sure that nft is part of valid collection
@@ -30,6 +30,7 @@ pub mod nft_staking {
         staking_account.staked_time = Clock::get()?.unix_timestamp;
         staking_account.owner = ctx.accounts.user.key();
         staking_account.mint = ctx.accounts.nft_account.mint;
+        staking_account.collection = collection;
         Ok(())
     }
     pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
@@ -114,6 +115,7 @@ pub struct Initialize<'info> {
 #[account]
 pub struct StakeInfo {
     owner: Pubkey,
+    collection: u8,
     mint: Pubkey,
     staked_time: i64,
 }
@@ -124,7 +126,7 @@ pub struct Stake<'info> {
         seeds = [b"stake", user.key().as_ref(), nft_account.mint.as_ref()],
         bump,
         payer = user,
-        space = 8 + 32 + 32 + 8,
+        space = 8 + 32 + 1 + 32 + 8,
     )]
     pub stake_account: Account<'info, StakeInfo>,
     #[account(

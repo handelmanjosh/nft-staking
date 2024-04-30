@@ -3,6 +3,7 @@ import { Program } from "@coral-xyz/anchor";
 import { NftStaking } from "../target/types/nft_staking";
 import { TOKEN_PROGRAM_ID, createMint, getOrCreateAssociatedTokenAccount, mintTo, getAccount } from "@solana/spl-token";
 import { assert } from "chai";
+import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 describe("nft-staking", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
@@ -90,7 +91,7 @@ describe("nft-staking", () => {
       [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), nftMint.toBuffer()],
       program.programId,
     )
-    await program.methods.stake().accounts({
+    await program.methods.stake(0).accounts({
       stakeAccount,
       stakeTokenAccount,
       user: wallet.publicKey,
@@ -236,7 +237,7 @@ describe("nft-staking", () => {
       [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), nftMint.toBuffer()],
       program.programId,
     )
-    await program.methods.stake().accounts({
+    await program.methods.stake(0).accounts({
       stakeAccount,
       stakeTokenAccount,
       user: wallet.publicKey,
@@ -285,7 +286,7 @@ describe("nft-staking", () => {
       stakeAccount: stakeAccount1, stakeTokenAccount: stakeTokenAccount1 } = await mintNFT();
     const { nftMint: nftMint2, nftAccount: nftAccount2, 
       stakeAccount: stakeAccount2, stakeTokenAccount: stakeTokenAccount2 } = await mintNFT();
-    await program.methods.stake().accounts({
+    await program.methods.stake(0).accounts({
       stakeAccount: stakeAccount1,
       stakeTokenAccount: stakeTokenAccount1,
       user: wallet.publicKey,
@@ -294,7 +295,7 @@ describe("nft-staking", () => {
       nftAccount: nftAccount1.address,
       tokenProgram: TOKEN_PROGRAM_ID
     }).rpc();
-    await program.methods.stake().accounts({
+    await program.methods.stake(1).accounts({
       stakeAccount: stakeAccount2,
       stakeTokenAccount: stakeTokenAccount2,
       user: wallet.publicKey,
@@ -307,13 +308,26 @@ describe("nft-staking", () => {
     const fetched = await program.account.stakeInfo.all([
       {
         memcmp: {
-          offset: 0,
-          bytes: wallet.publicKey.toString(),
+          offset: 8,
+          bytes: wallet.publicKey.toBase58(),
         }
       }
     ]);
-    const fetched2 = await program.account.stakeInfo.all();
-    console.log(fetched2);
-    console.log(fetched);
+    assert(fetched.length > 0);
+    const fetched1 = await program.account.stakeInfo.all([
+      {
+        memcmp: {
+          offset: 8,
+          bytes: wallet.publicKey.toBase58()
+        }
+      },
+      {
+        memcmp: {
+          offset: 40,
+          bytes: bs58.encode(Buffer.from([1]))
+        }
+      }
+    ]);
+    assert(fetched1.length === 1);
   })
 });
