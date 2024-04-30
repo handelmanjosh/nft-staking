@@ -28,7 +28,38 @@ describe("nft-staking", () => {
     // Add your test here.
     await initialize();
   });
-  
+  const mintNFT = async () => {
+    const nftMint = await createMint(
+      provider.connection,
+      wallet.payer,
+      wallet.publicKey,
+      null,
+      0
+    );
+    const nftAccount = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      nftMint,
+      wallet.publicKey,
+    );
+    await mintTo(
+      provider.connection,
+      wallet.payer,
+      nftMint,
+      nftAccount.address,
+      wallet.payer,
+      1
+    );
+    const [stakeAccount] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("stake"), wallet.publicKey.toBuffer(), nftMint.toBuffer()],
+      program.programId,
+    );
+    const [stakeTokenAccount] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), nftMint.toBuffer()],
+      program.programId,
+    )
+    return { nftMint, nftAccount, stakeAccount, stakeTokenAccount };
+  }
   const stake = async () => {
     const nftMint = await createMint(
       provider.connection,
@@ -52,11 +83,11 @@ describe("nft-staking", () => {
       1
     );
     const [stakeAccount] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("stake"), wallet.publicKey.toBuffer(), nftAccount.address.toBuffer()],
+      [Buffer.from("stake"), wallet.publicKey.toBuffer(), nftMint.toBuffer()],
       program.programId,
     );
     const [stakeTokenAccount] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), nftAccount.address.toBuffer()],
+      [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), nftMint.toBuffer()],
       program.programId,
     )
     await program.methods.stake().accounts({
@@ -198,11 +229,11 @@ describe("nft-staking", () => {
       1
     );
     const [stakeAccount] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("stake"), wallet.publicKey.toBuffer(), nftAccount.address.toBuffer()],
+      [Buffer.from("stake"), wallet.publicKey.toBuffer(), nftMint.toBuffer()],
       program.programId,
     );
     const [stakeTokenAccount] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), nftAccount.address.toBuffer()],
+      [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), nftMint.toBuffer()],
       program.programId,
     )
     await program.methods.stake().accounts({
@@ -216,6 +247,73 @@ describe("nft-staking", () => {
     }).signers([wallet.payer]).rpc();
 
     const fetched = await program.account.stakeInfo.fetch(stakeAccount);
+    const [stakeAccount2] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("stake"), wallet.publicKey.toBuffer(), fetched.mint.toBuffer()],
+      program.programId,
+    );
+    const [stakeTokenAccount2] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), fetched.mint.toBuffer()],
+      program.programId,
+    );
+    const nftAccount2 = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      fetched.mint,
+      wallet.publicKey,
+    );
+    const userTokenAccount = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      mint,
+      wallet.publicKey,
+    )
+    await program.methods.unstake().accounts({
+      stakeAccount: stakeAccount2,
+      stakeTokenAccount: stakeTokenAccount2,
+      user: wallet.publicKey,
+      userTokenAccount: userTokenAccount.address,
+      tokenMint: mint,
+      programAuthority,
+      nftAccount: nftAccount2.address
+    }).rpc();
+
+    const userAccountData = await getAccount(provider.connection, nftAccount2.address);
+    assert(userAccountData.amount == BigInt(1));
+  });
+  it("can get data from multiple stakings", async () => {
+    const { nftMint: nftMint1, nftAccount: nftAccount1, 
+      stakeAccount: stakeAccount1, stakeTokenAccount: stakeTokenAccount1 } = await mintNFT();
+    const { nftMint: nftMint2, nftAccount: nftAccount2, 
+      stakeAccount: stakeAccount2, stakeTokenAccount: stakeTokenAccount2 } = await mintNFT();
+    await program.methods.stake().accounts({
+      stakeAccount: stakeAccount1,
+      stakeTokenAccount: stakeTokenAccount1,
+      user: wallet.publicKey,
+      mint: nftMint1,
+      programAuthority,
+      nftAccount: nftAccount1.address,
+      tokenProgram: TOKEN_PROGRAM_ID
+    }).rpc();
+    await program.methods.stake().accounts({
+      stakeAccount: stakeAccount2,
+      stakeTokenAccount: stakeTokenAccount2,
+      user: wallet.publicKey,
+      mint: nftMint2,
+      programAuthority,
+      nftAccount: nftAccount2.address,
+      tokenProgram: TOKEN_PROGRAM_ID
+    }).rpc();
+
+    const fetched = await program.account.stakeInfo.all([
+      {
+        memcmp: {
+          offset: 0,
+          bytes: wallet.publicKey.toString(),
+        }
+      }
+    ]);
+    const fetched2 = await program.account.stakeInfo.all();
+    console.log(fetched2);
     console.log(fetched);
   })
 });

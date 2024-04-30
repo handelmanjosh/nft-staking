@@ -155,14 +155,14 @@ pub struct Stake<'info> {
 pub struct Unstake<'info> {
     #[account(
         mut,
-        seeds = [b"stake", user.key().as_ref(), nft_account.key().as_ref()],
+        seeds = [b"stake", user.key().as_ref(), nft_account.mint.as_ref()],
         bump,
         close = user,
     )]
     pub stake_account: Account<'info, StakeInfo>,
     #[account(
         mut,
-        seeds = [b"stake_account", user.key().as_ref(), nft_account.key().as_ref()],
+        seeds = [b"stake_account", user.key().as_ref(), nft_account.mint.as_ref()],
         bump,
     )]
     pub stake_token_account: Account<'info, TokenAccount>,
@@ -193,7 +193,7 @@ pub struct Unstake<'info> {
 pub struct Claim<'info> {
     #[account(
         mut,
-        seeds = [b"stake", user.key().as_ref(), nft_account.key().as_ref()],
+        seeds = [b"stake", user.key().as_ref(), nft_account.mint.as_ref()],
         bump,
     )]
     pub stake_account: Account<'info, StakeInfo>,
