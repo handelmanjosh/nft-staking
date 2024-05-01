@@ -89,9 +89,7 @@
         },
         {
           "name": "size",
-          "type": {
-            "defined": "usize"
-          }
+          "type": "u64"
         }
       ]
     },

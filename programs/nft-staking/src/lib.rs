@@ -55,7 +55,6 @@ pub mod nft_staking {
         }
         stake_account_info.realloc(new_size, false)?;
         ctx.accounts.stake_account.add_stake(collection, ctx.accounts.nft_account.mint, time);
-
         Ok(())
     }
     pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
@@ -177,6 +176,7 @@ impl StakeInfo {
         self.staked_times.remove(index);
     }   
     pub fn space(num_stakes: usize) -> usize {
+        msg!("Num stakes {}", num_stakes);
         8 + 32 + (4 + num_stakes) + (4 + num_stakes * 32) + (4 + num_stakes * 8)
     }
 }
@@ -211,7 +211,7 @@ pub struct Stake<'info> {
         seeds = [b"auth"],
         bump
     )]
-    /// CHECK: fuck off
+    /// CHECK:
     pub program_authority: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token>,
 }
