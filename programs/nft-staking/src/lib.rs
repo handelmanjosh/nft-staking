@@ -176,7 +176,7 @@ impl StakeInfo {
         self.mints.remove(index);
         self.staked_times.remove(index);
     }   
-    pub fn space(num_stakes: u64) -> u64 {
+    pub fn space(num_stakes: usize) -> usize {
         8 + 32 + (4 + num_stakes) + (4 + num_stakes * 32) + (4 + num_stakes * 8)
     }
 }
@@ -188,7 +188,7 @@ pub struct Stake<'info> {
         seeds = [b"stake", user.key().as_ref()],
         bump,
         payer = user,
-        space = StakeInfo::space(size)
+        space = StakeInfo::space(size as usize)
 
     )]
     pub stake_account: Account<'info, StakeInfo>,
