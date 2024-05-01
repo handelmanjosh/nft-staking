@@ -26,16 +26,26 @@ pub mod nft_staking {
             ),
             1
         )?; // remember to add error handling
-        let staking_account = &mut ctx.accounts.stake_account;
-        staking_account.staked_time = Clock::get()?.unix_timestamp;
-        staking_account.owner = ctx.accounts.user.key();
-        staking_account.mint = ctx.accounts.nft_account.mint;
-        staking_account.collection = collection;
+        let time = Clock::get()?.unix_timestamp;
+        ctx.accounts.stake_account.add_stake(collection, ctx.accounts.nft_account.mint, time);
+        if ctx.accounts.stake_account.owner == Pubkey::default() {
+            ctx.accounts.stake_account.owner = ctx.accounts.user.key();
+        } else {
+            if ctx.accounts.stake_account.owner != ctx.accounts.user.key() {
+                return Err(CustomError::Unauthorized.into())
+            }
+        }
+        let new_size = StakeInfo::space(ctx.accounts.stake_account.mints.len());
+        ctx.accounts.stake_account.to_account_info().realloc(new_size, false)?;
         Ok(())
     }
     pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
         // transfer nft from pda
         // close pda
+        let stake = &mut ctx.accounts.stake_account;
+        if stake.owner != ctx.accounts.user.key() {
+            return Err(CustomError::Unauthorized.into())
+        }
         transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -48,7 +58,8 @@ pub mod nft_staking {
             ),
             1
         )?;
-        let time_diff = Clock::get()?.unix_timestamp - ctx.accounts.stake_account.staked_time;
+        let index = stake.mints.iter().position(|&x| x == ctx.accounts.nft_account.mint).unwrap();
+        let time_diff = Clock::get()?.unix_timestamp - stake.staked_times[index];
         let tokens = time_diff as u64; //how do we calculate tokens earned?
         mint_to(
             CpiContext::new_with_signer(
@@ -62,29 +73,43 @@ pub mod nft_staking {
             ),
             tokens
         )?;
+        stake.remove_stake(index);
+        let new_size = StakeInfo::space(ctx.accounts.stake_account.mints.len());
+        ctx.accounts.stake_account.to_account_info().realloc(new_size, false)?;
         Ok(())
     }
     pub fn claim(ctx: Context<Claim>) -> Result<()> {
-        let timestamp = Clock::get()?.unix_timestamp;
-        let diff = timestamp - ctx.accounts.stake_account.staked_time;
-        let tokens = diff as u64;
-        mint_to(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                MintTo {
-                    to: ctx.accounts.user_token_account.to_account_info(),
-                    mint: ctx.accounts.token_mint.to_account_info(),
-                    authority: ctx.accounts.token_mint.to_account_info()
-                },
-                &[&[b"mint", &[ctx.bumps.token_mint]]]
-            ),
-            tokens,
-        )?;
-        ctx.accounts.stake_account.staked_time = timestamp;
+        if ctx.accounts.stake_account.owner != ctx.accounts.user.key() {
+            return Err(CustomError::Unauthorized.into())
+        }
+        let curr_time = Clock::get()?.unix_timestamp;
+        for i in 0..ctx.accounts.stake_account.staked_times.len() {
+            let time_diff = curr_time - ctx.accounts.stake_account.staked_times[i];
+            let tokens = time_diff as u64;
+            ctx.accounts.stake_account.staked_times[i] = curr_time;
+            mint_to(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.to_account_info(),
+                    MintTo {
+                        to: ctx.accounts.user_token_account.to_account_info(),
+                        mint: ctx.accounts.token_mint.to_account_info(),
+                        authority: ctx.accounts.token_mint.to_account_info(),
+                    },
+                    &[&[b"mint", &[ctx.bumps.token_mint]]]
+                ),
+                tokens
+            )?;
+        };
         Ok(())
     }
 }
-
+#[error_code]
+pub enum CustomError {
+    #[msg("Mint not found")]
+    MintNotFound,
+    #[msg("Unauthorized")]
+    Unauthorized,
+}
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(
@@ -115,18 +140,33 @@ pub struct Initialize<'info> {
 #[account]
 pub struct StakeInfo {
     owner: Pubkey,
-    collection: u8,
-    mint: Pubkey,
-    staked_time: i64,
+    collections: Vec<u8>,
+    mints: Vec<Pubkey>,
+    staked_times: Vec<i64>,
+}
+impl StakeInfo {
+    pub fn add_stake(&mut self, collection: u8, mint: Pubkey, staked_time: i64) {
+        self.collections.push(collection);
+        self.mints.push(mint);
+        self.staked_times.push(staked_time);
+    }
+    pub fn remove_stake(&mut self, index: usize) {
+        self.collections.remove(index);
+        self.mints.remove(index);
+        self.staked_times.remove(index);
+    }   
+    pub fn space(num_stakes: usize) -> usize {
+        8 + 32 + (4 + num_stakes) + (4 + num_stakes * 32) + (4 + num_stakes * 8)
+    }
 }
 #[derive(Accounts)]
 pub struct Stake<'info> {
     #[account(
-        init,
-        seeds = [b"stake", user.key().as_ref(), nft_account.mint.as_ref()],
+        init_if_needed,
+        seeds = [b"stake", user.key().as_ref()],
         bump,
         payer = user,
-        space = 8 + 32 + 1 + 32 + 8,
+        space = 8 + 32,
     )]
     pub stake_account: Account<'info, StakeInfo>,
     #[account(
@@ -157,9 +197,8 @@ pub struct Stake<'info> {
 pub struct Unstake<'info> {
     #[account(
         mut,
-        seeds = [b"stake", user.key().as_ref(), nft_account.mint.as_ref()],
+        seeds = [b"stake", user.key().as_ref()],
         bump,
-        close = user,
     )]
     pub stake_account: Account<'info, StakeInfo>,
     #[account(
@@ -195,12 +234,10 @@ pub struct Unstake<'info> {
 pub struct Claim<'info> {
     #[account(
         mut,
-        seeds = [b"stake", user.key().as_ref(), nft_account.mint.as_ref()],
+        seeds = [b"stake", user.key().as_ref()],
         bump,
     )]
     pub stake_account: Account<'info, StakeInfo>,
-    #[account(mut)]
-    pub nft_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(mut)]
