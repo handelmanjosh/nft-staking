@@ -10,24 +10,7 @@ pub mod nft_staking {
         // msg!("Token state initialized");
         Ok(())
     }
-
     pub fn stake(ctx: Context<Stake>, collection: u8) -> Result<()> {
-        // make pda for nft collection
-        // transfer nft to pda
-        // make sure that nft is part of valid collection
-        transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.nft_account.to_account_info(),
-                    to: ctx.accounts.stake_token_account.to_account_info(),
-                    authority: ctx.accounts.user.to_account_info(),
-                }
-            ),
-            1
-        )?; // remember to add error handling
-        let time = Clock::get()?.unix_timestamp;
-        ctx.accounts.stake_account.add_stake(collection, ctx.accounts.nft_account.mint, time);
         if ctx.accounts.stake_account.owner == Pubkey::default() {
             ctx.accounts.stake_account.owner = ctx.accounts.user.key();
         } else {
@@ -35,8 +18,41 @@ pub mod nft_staking {
                 return Err(CustomError::Unauthorized.into())
             }
         }
+        let user_info = ctx.accounts.user.to_account_info();
+        transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.nft_account.to_account_info(),
+                    to: ctx.accounts.stake_token_account.to_account_info(),
+                    authority: user_info,
+                }
+            ),
+            1
+        )?; // remember to add error handling
+        let time = Clock::get()?.unix_timestamp;
+        ctx.accounts.stake_account.add_stake(collection, ctx.accounts.nft_account.mint, time);
         let new_size = StakeInfo::space(ctx.accounts.stake_account.mints.len());
-        ctx.accounts.stake_account.to_account_info().realloc(new_size, false)?;
+
+        let lamports_required = Rent::get()?.minimum_balance(new_size);
+        let stake_account_info = ctx.accounts.stake_account.to_account_info();
+        if stake_account_info.lamports() < lamports_required {
+            let lamports_to_transfer = lamports_required - stake_account_info.lamports();
+            anchor_lang::solana_program::program::invoke(
+                &anchor_lang::solana_program::system_instruction::transfer(
+                    &ctx.accounts.user.key(),
+                    stake_account_info.key,
+                    lamports_to_transfer
+                ),
+                &[
+                    ctx.accounts.user.to_account_info(),
+                    stake_account_info.clone(),
+                    ctx.accounts.system_program.to_account_info().clone()
+                ]
+            )?;
+        }
+        stake_account_info.realloc(new_size, false)?;
+
         Ok(())
     }
     pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
