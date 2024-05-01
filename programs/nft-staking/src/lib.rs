@@ -10,7 +10,7 @@ pub mod nft_staking {
         // msg!("Token state initialized");
         Ok(())
     }
-    pub fn stake(ctx: Context<Stake>, collection: u8) -> Result<()> {
+    pub fn stake(ctx: Context<Stake>, collection: u8, size: usize) -> Result<()> {
         if ctx.accounts.stake_account.owner == Pubkey::default() {
             ctx.accounts.stake_account.owner = ctx.accounts.user.key();
         } else {
@@ -31,8 +31,8 @@ pub mod nft_staking {
             1
         )?; // remember to add error handling
         let time = Clock::get()?.unix_timestamp;
-        ctx.accounts.stake_account.add_stake(collection, ctx.accounts.nft_account.mint, time);
-        let new_size = StakeInfo::space(ctx.accounts.stake_account.mints.len());
+        
+        let new_size = StakeInfo::space(ctx.accounts.stake_account.mints.len() + 1);
 
         let lamports_required = Rent::get()?.minimum_balance(new_size);
         let stake_account_info = ctx.accounts.stake_account.to_account_info();
@@ -52,6 +52,7 @@ pub mod nft_staking {
             )?;
         }
         stake_account_info.realloc(new_size, false)?;
+        ctx.accounts.stake_account.add_stake(collection, ctx.accounts.nft_account.mint, time);
 
         Ok(())
     }
@@ -176,13 +177,15 @@ impl StakeInfo {
     }
 }
 #[derive(Accounts)]
+#[instruction(size: usize)]
 pub struct Stake<'info> {
     #[account(
         init_if_needed,
         seeds = [b"stake", user.key().as_ref()],
         bump,
         payer = user,
-        space = StakeInfo::space(0),
+        space = StakeInfo::space(size)
+
     )]
     pub stake_account: Account<'info, StakeInfo>,
     #[account(
