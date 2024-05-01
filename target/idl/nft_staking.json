@@ -86,6 +86,12 @@
         {
           "name": "collection",
           "type": "u8"
+        },
+        {
+          "name": "size",
+          "type": {
+            "defined": "usize"
+          }
         }
       ]
     },
@@ -217,6 +223,11 @@
       "code": 6001,
       "name": "Unauthorized",
       "msg": "Unauthorized"
+    },
+    {
+      "code": 6002,
+      "name": "IncorrectSize",
+      "msg": "Incorrect size"
     }
   ],
   "metadata": {

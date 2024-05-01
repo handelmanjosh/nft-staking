@@ -10,7 +10,7 @@ pub mod nft_staking {
         // msg!("Token state initialized");
         Ok(())
     }
-    pub fn stake(ctx: Context<Stake>, collection: u8, size: usize) -> Result<()> {
+    pub fn stake(ctx: Context<Stake>, collection: u8, size: u64) -> Result<()> {
         if ctx.accounts.stake_account.owner == Pubkey::default() {
             ctx.accounts.stake_account.owner = ctx.accounts.user.key();
         } else {
@@ -31,7 +31,9 @@ pub mod nft_staking {
             1
         )?; // remember to add error handling
         let time = Clock::get()?.unix_timestamp;
-        
+        if size != ctx.accounts.stake_account.mints.len() as u64 {
+            return Err(CustomError::IncorrectSize.into())
+        }
         let new_size = StakeInfo::space(ctx.accounts.stake_account.mints.len() + 1);
 
         let lamports_required = Rent::get()?.minimum_balance(new_size);
@@ -126,6 +128,8 @@ pub enum CustomError {
     MintNotFound,
     #[msg("Unauthorized")]
     Unauthorized,
+    #[msg("Incorrect size")]
+    IncorrectSize,
 }
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -172,12 +176,12 @@ impl StakeInfo {
         self.mints.remove(index);
         self.staked_times.remove(index);
     }   
-    pub fn space(num_stakes: usize) -> usize {
+    pub fn space(num_stakes: u64) -> u64 {
         8 + 32 + (4 + num_stakes) + (4 + num_stakes * 32) + (4 + num_stakes * 8)
     }
 }
 #[derive(Accounts)]
-#[instruction(size: usize)]
+#[instruction(size: u64)]
 pub struct Stake<'info> {
     #[account(
         init_if_needed,

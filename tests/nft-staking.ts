@@ -1,9 +1,20 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+import { AnchorError, Program } from "@coral-xyz/anchor";
 import { NftStaking } from "../target/types/nft_staking";
 import { TOKEN_PROGRAM_ID, createMint, getOrCreateAssociatedTokenAccount, mintTo, getAccount } from "@solana/spl-token";
-import { assert } from "chai";
+import { assert, expect } from "chai";
 import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
+async function fail(f: () => any, error_message: string) {
+  try {
+    await f();
+    throw new Error(`Program did not error`);
+  } catch (e) {
+    e = e as AnchorError;
+    if (e.error.errorMessage !== error_message) {
+      throw new Error(`Incorrect error: Expected: ${error_message}, Got: ${e.error.errorMesssage}`);
+    }
+  }
+}
 describe("nft-staking", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
@@ -61,9 +72,21 @@ describe("nft-staking", () => {
     )
     return { nftMint, nftAccount, stakeAccount, stakeTokenAccount };
   }
+  const stake = async (size: number) => {
+    const { nftMint, nftAccount, stakeAccount, stakeTokenAccount } = await mintNFT();
+    await program.methods.stake(0, size).accounts({
+      stakeAccount,
+      stakeTokenAccount,
+      user: wallet.publicKey,
+      nftAccount: nftAccount.address,
+      programAuthority,
+      mint: nftMint
+    }).signers([wallet.payer]).rpc();
+    return { nftMint, nftAccount, stakeAccount, stakeTokenAccount };
+  }
   it("can stake single nft", async () => {
     const { nftMint, nftAccount, stakeAccount, stakeTokenAccount } = await mintNFT();
-    await program.methods.stake(0).accounts({
+    await program.methods.stake(0, 0).accounts({
       stakeAccount,
       stakeTokenAccount,
       user: wallet.publicKey,
@@ -73,13 +96,22 @@ describe("nft-staking", () => {
     }).signers([wallet.payer]).rpc();
     // const account = await program.account.stakeInfo.fetch(stakeAccount);
     // console.log(account);
+  });
+  it("should fail to stake if incorrect size", async () => {
+      fail(async () => {
+        await stake(10)
+      }, "Invalid size")
+  })
+  it("can stake multiple nfts", async () =>{
+    await stake(0);
+    await stake(1);
   })
   it("can get data from multiple stakings", async () => {
     const { nftMint: nftMint1, nftAccount: nftAccount1, 
       stakeAccount: stakeAccount1, stakeTokenAccount: stakeTokenAccount1 } = await mintNFT();
     const { nftMint: nftMint2, nftAccount: nftAccount2, 
       stakeAccount: stakeAccount2, stakeTokenAccount: stakeTokenAccount2 } = await mintNFT();
-    await program.methods.stake(0).accounts({
+    await program.methods.stake(0, 1).accounts({
       stakeAccount: stakeAccount1,
       stakeTokenAccount: stakeTokenAccount1,
       user: wallet.publicKey,
@@ -88,7 +120,7 @@ describe("nft-staking", () => {
       nftAccount: nftAccount1.address,
       tokenProgram: TOKEN_PROGRAM_ID
     }).rpc();
-    await program.methods.stake(1).accounts({
+    await program.methods.stake(1, 1).accounts({
       stakeAccount: stakeAccount2,
       stakeTokenAccount: stakeTokenAccount2,
       user: wallet.publicKey,
