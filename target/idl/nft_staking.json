@@ -149,11 +149,6 @@
           "isSigner": false
         },
         {
-          "name": "nftAccount",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
           "name": "user",
           "isMut": true,
           "isSigner": true
@@ -193,19 +188,35 @@
             "type": "publicKey"
           },
           {
-            "name": "collection",
-            "type": "u8"
+            "name": "collections",
+            "type": "bytes"
           },
           {
-            "name": "mint",
-            "type": "publicKey"
+            "name": "mints",
+            "type": {
+              "vec": "publicKey"
+            }
           },
           {
-            "name": "stakedTime",
-            "type": "i64"
+            "name": "stakedTimes",
+            "type": {
+              "vec": "i64"
+            }
           }
         ]
       }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "MintNotFound",
+      "msg": "Mint not found"
+    },
+    {
+      "code": 6001,
+      "name": "Unauthorized",
+      "msg": "Unauthorized"
     }
   ],
   "metadata": {

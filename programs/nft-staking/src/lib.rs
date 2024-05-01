@@ -166,7 +166,7 @@ pub struct Stake<'info> {
         seeds = [b"stake", user.key().as_ref()],
         bump,
         payer = user,
-        space = 8 + 32,
+        space = StakeInfo::space(0),
     )]
     pub stake_account: Account<'info, StakeInfo>,
     #[account(
