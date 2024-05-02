@@ -267,12 +267,7 @@ pub struct Claim<'info> {
     pub stake_account: Account<'info, StakeInfo>,
     #[account(mut)]
     pub user: Signer<'info>,
-    #[account(
-        init_if_needed,
-        payer = user,
-        associated_token::mint = token_mint,
-        associated_token::authority = user,
-    )]
+    #[account(mut)]
     pub user_token_account: Account<'info, TokenAccount>,
     #[account(
         mut,
