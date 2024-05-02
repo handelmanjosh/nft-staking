@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{associated_token::AssociatedToken, token::{mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer}};
 
-declare_id!("FNpNiKrtdwhMqCtzXrU9CnsH8EuQL5LMv2pskcagVDiT");
+declare_id!("AiSHEUGnHP33y3LE1DZY2w1MMhfNSCZ56XTZz6j49TUY");
 
 #[program]
 pub mod nft_staking {
