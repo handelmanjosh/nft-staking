@@ -39,47 +39,6 @@
       "args": []
     },
     {
-      "name": "createAssociatedTokenAccount",
-      "accounts": [
-        {
-          "name": "associatedTokenAccount",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "mint",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "user",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "associatedTokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "rent",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "stake",
       "accounts": [
         {
@@ -273,8 +232,5 @@
       "name": "IncorrectSize",
       "msg": "Incorrect size"
     }
-  ],
-  "metadata": {
-    "address": "AiSHEUGnHP33y3LE1DZY2w1MMhfNSCZ56XTZz6j49TUY"
-  }
+  ]
 }

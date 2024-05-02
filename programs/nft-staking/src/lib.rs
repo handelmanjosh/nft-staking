@@ -11,9 +11,6 @@ pub mod nft_staking {
         // msg!("Token state initialized");
         Ok(())
     }
-    pub fn create_associated_token_account(_ctx: Context<CreateAssociatedTokenAccount>) -> Result<()> {
-        Ok(())
-    }
     pub fn stake(ctx: Context<Stake>, collection: u8, size: u64) -> Result<()> {
         if ctx.accounts.stake_account.owner == Pubkey::default() {
             ctx.accounts.stake_account.owner = ctx.accounts.user.key();
@@ -134,23 +131,7 @@ pub enum CustomError {
     #[msg("Incorrect size")]
     IncorrectSize,
 }
-#[derive(Accounts)]
-pub struct CreateAssociatedTokenAccount<'info> {
-    #[account(
-        init,
-        payer = user,
-        associated_token::mint = mint,
-        associated_token::authority = user,
-    )]
-    pub associated_token_account: Account<'info, TokenAccount>,
-    pub mint: Account<'info, Mint>,
-    #[account(mut)]
-    pub user: Signer<'info>,
-    pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub rent: Sysvar<'info, Rent>
-}
+
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(
