@@ -4,6 +4,7 @@ import { NftStaking } from "../target/types/nft_staking";
 import { TOKEN_PROGRAM_ID, createMint, getOrCreateAssociatedTokenAccount, mintTo, getAccount, getAssociatedTokenAddress, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { assert, expect } from "chai";
 import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
+import fs from 'fs';
 async function fail(f: () => any, error_message: string) {
   try {
     await f();
@@ -15,6 +16,12 @@ async function fail(f: () => any, error_message: string) {
       throw new Error(`Incorrect error: Expected: ${error_message}, Got: ${e.error.errorMesssage}`);
     }
   }
+}
+function functionalIncludes<T>(l: T[], f: (t: T) => boolean): boolean {
+  for (const item of l){
+    if (f(item)) return true;
+  }
+  return false;
 }
 async function timeout(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -162,9 +169,12 @@ describe("nft-staking", () => {
     const tokenAcc = await getAccount(provider.connection, stakeTokenAccount);
     assert(tokenAcc.amount === BigInt(0), "Program still has token");
     const account = await program.account.stakeInfo.fetch(stakeAccount);
-    console.log(JSON.stringify({account, accountData, accountData2}));
+    fs.writeFileSync("file.json", JSON.stringify({account, accountData, accountData2, nftMint, nftAccount}));
     assert(account.mints.length === accountData.mints.length + 1, "did not stake 2 then unstake 1 nft");
-    assert(account.mints.length === accountData2.mints.length, "Did not stake 2 then unstake 1");
+    assert(account.mints.length === accountData2.mints.length - 1, "Removed a mint");
+    assert(functionalIncludes(account.mints, (mint) => {
+      return mint.equals(nftMint);
+    }), "Account still includes nft mint");
   });
   it("claims multiple", async () => {
     let [stakeAccount] = anchor.web3.PublicKey.findProgramAddressSync(
