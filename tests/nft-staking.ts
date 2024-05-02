@@ -172,7 +172,7 @@ describe("nft-staking", () => {
     fs.writeFileSync("file.json", JSON.stringify({account, accountData, accountData2, nftMint, nftAccount}));
     assert(account.mints.length === accountData.mints.length + 1, "did not stake 2 then unstake 1 nft");
     assert(account.mints.length === accountData2.mints.length - 1, "Removed a mint");
-    assert(functionalIncludes(account.mints, (mint) => {
+    assert(!functionalIncludes(account.mints, (mint) => {
       return mint.equals(nftMint);
     }), "Account still includes nft mint");
   });
