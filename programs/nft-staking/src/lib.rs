@@ -176,8 +176,11 @@ impl StakeInfo {
         self.staked_times.remove(index);
     }   
     pub fn space(num_stakes: usize) -> usize {
-        msg!("Num stakes {}", num_stakes);
         8 + 32 + (4 + num_stakes) + (4 + num_stakes * 32) + (4 + num_stakes * 8)
+    }
+    pub fn space_external(num_stakes: usize) -> usize {
+        let num = num_stakes / 256;
+        8 + 32 + (4 + num) + (4 + num * 32) + (4 + num * 8)
     }
 }
 #[derive(Accounts)]
@@ -188,7 +191,7 @@ pub struct Stake<'info> {
         seeds = [b"stake", user.key().as_ref()],
         bump,
         payer = user,
-        space = StakeInfo::space(size as usize)
+        space = StakeInfo::space_external(size as usize)
 
     )]
     pub stake_account: Account<'info, StakeInfo>,
