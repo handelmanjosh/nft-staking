@@ -53,6 +53,21 @@ describe("nft-staking", () => {
     // Add your test here.
     await initialize();
   });
+  it("can create and view account info", async () => {
+    let userTokenAccount = getAssociatedTokenAddressSync(
+      mint,
+      wallet.publicKey
+    );
+    let accountInfo = await provider.connection.getAccountInfo(userTokenAccount);
+    assert(!accountInfo, "account defined");
+    await program.methods.createAssociatedTokenAccount().accounts({
+      user: wallet.publicKey,
+      mint,
+      associatedTokenAccount: userTokenAccount
+    }).rpc();
+    accountInfo = await provider.connection.getAccountInfo(userTokenAccount);
+    assert(accountInfo, "account not defined");
+  })
   const mintNFT = async () => {
     const nftMint = await createMint(
       provider.connection,
@@ -147,9 +162,7 @@ describe("nft-staking", () => {
       [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), nftMint.toBuffer()],
       program.programId
     );
-    const userTokenAccount = await getOrCreateAssociatedTokenAccount(
-      provider.connection, 
-      wallet.payer, 
+    const userTokenAccount = getAssociatedTokenAddressSync(
       mint, 
       wallet.publicKey
     );
@@ -161,9 +174,9 @@ describe("nft-staking", () => {
       programAuthority,
       tokenMint: mint,
       user: wallet.publicKey,
-      userTokenAccount: userTokenAccount.address,
+      userTokenAccount,
     }).signers([wallet.payer]).rpc();
-    const token = await getAccount(provider.connection, userTokenAccount.address);
+    const token = await getAccount(provider.connection, userTokenAccount);
     await timeout(500);
     assert(token.amount > 0, "user did not get any token");
     const tokenAcc = await getAccount(provider.connection, stakeTokenAccount);
@@ -186,16 +199,14 @@ describe("nft-staking", () => {
     for (let i = 0; i < 3; i++) {
       await stake(start + i);
     }
-    const userTokenAccount = await getOrCreateAssociatedTokenAccount(
-      provider.connection, 
-      wallet.payer, 
+    const userTokenAccount = getAssociatedTokenAddressSync(
       mint, 
       wallet.publicKey
     );
     await program.methods.claim().accounts({
       stakeAccount,
       user: wallet.publicKey,
-      userTokenAccount: userTokenAccount.address,
+      userTokenAccount,
       tokenMint: mint,
       tokenProgram: TOKEN_PROGRAM_ID,
     }).rpc();
