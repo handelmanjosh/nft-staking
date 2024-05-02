@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{mint_to, MintTo, Mint, TokenAccount, Token, transfer, Transfer};
+use anchor_spl::{associated_token::AssociatedToken, token::{mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer}};
 
 declare_id!("3vY4aPW3P2c2ZdQBRxGCFyvLxym9m1NeowUajEGk6StS");
 
@@ -267,7 +267,12 @@ pub struct Claim<'info> {
     pub stake_account: Account<'info, StakeInfo>,
     #[account(mut)]
     pub user: Signer<'info>,
-    #[account(mut)]
+    #[account(
+        init_if_needed,
+        payer = user,
+        associated_token::mint = token_mint,
+        associated_token::authority = user,
+    )]
     pub user_token_account: Account<'info, TokenAccount>,
     #[account(
         mut,
@@ -276,5 +281,6 @@ pub struct Claim<'info> {
     )]
     pub token_mint: Account<'info, Mint>,
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>
 }
